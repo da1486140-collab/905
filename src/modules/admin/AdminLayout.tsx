@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { LangSwitcher } from '@/components/LangSwitcher'
-import { Home, Package, Plus, Building2, MoreHorizontal } from 'lucide-react'
+import { Chrome as Home, Package, Plus, Building2, MoveHorizontal as MoreHorizontal } from 'lucide-react'
 import { useEffect } from 'react'
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

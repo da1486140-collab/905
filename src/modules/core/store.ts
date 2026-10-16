@@ -4,6 +4,7 @@ import type { Profile, AppRole } from '@/lib/database.types'
 import { toApiError } from '@/lib/errors'
 import { get as idbGet, set as idbSet } from 'idb-keyval'
 import { startOutboxSync, stopOutboxSync } from '@/lib/outbox'
+import { setSentryUser } from '@/lib/sentry'
 
 type AuthState = 'loading' | 'bootstrap' | 'login' | 'ready' | 'no-connection'
 
@@ -65,6 +66,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
         }
         await cacheProfile(profile)
         startOutboxSync(profile.id)
+        setSentryUser(profile.id)
         set({ state: 'ready', profile, error: null })
       } catch (e) {
         const apiError = toApiError(e)
@@ -72,6 +74,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
           const cached = await getCachedProfile()
           if (cached && cached.active) {
             startOutboxSync(cached.id)
+            setSentryUser(cached.id)
             set({ state: 'ready', profile: cached, error: null })
           } else {
             set({ state: 'no-connection', profile: null, error: null })
@@ -122,6 +125,7 @@ export const useAuth = create<AuthStore>((set, get) => ({
       }
       await cacheProfile(profile)
       startOutboxSync(profile.id)
+      setSentryUser(profile.id)
       set({ state: 'ready', profile, error: null })
     } catch (e) {
       const apiError = toApiError(e)
@@ -171,11 +175,13 @@ export const useAuth = create<AuthStore>((set, get) => ({
     }
     await cacheProfile(profile)
     startOutboxSync(profile.id)
+    setSentryUser(profile.id)
     set({ state: 'ready', profile, error: null })
   },
 
   signOut: async () => {
     stopOutboxSync()
+    setSentryUser(null)
     await supabase.auth.signOut()
     set({ state: 'login', profile: null, error: null })
   },

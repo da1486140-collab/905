@@ -110,6 +110,8 @@ export const ar: Dict = {
   adminBanner: 'داخل كمدير',
   offline: 'مفيش نت',
   retry: 'حاول تاني',
+  pwaUpdate: 'فيه تحديث متاح',
+  pwaReload: 'إعادة تحميل',
   errors: {
     network: 'مفيش اتصال بالسيرفر',
     auth: 'الجلسة انتهت. ادخل تاني.',

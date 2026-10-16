@@ -3,6 +3,11 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { supabaseConfigMissing } from './lib/supabase';
+import { initSentry } from './lib/sentry';
+import { SentryErrorBoundary } from './components/SentryErrorBoundary';
+import { PWAUpdateBanner } from './components/PWAUpdateBanner';
+
+initSentry();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -11,7 +16,10 @@ createRoot(document.getElementById('root')!).render(
         Не заданы переменные VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY в настройках хостинга
       </div>
     ) : (
-      <App />
+      <SentryErrorBoundary>
+        <App />
+        <PWAUpdateBanner />
+      </SentryErrorBoundary>
     )}
   </StrictMode>
 );

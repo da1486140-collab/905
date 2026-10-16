@@ -109,6 +109,8 @@ export const en: Dict = {
   adminBanner: 'You are signed in as admin',
   offline: 'No connection',
   retry: 'Retry',
+  pwaUpdate: 'Update available',
+  pwaReload: 'Reload',
   errors: {
     network: 'No connection to server',
     auth: 'Session expired. Please sign in again.',
