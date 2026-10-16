@@ -1,23 +1,31 @@
 import { supabase } from '@/lib/supabase'
-import type { Incident, IncidentKind, SvItem } from '@/lib/database.types'
 import { toApiError } from '@/lib/errors'
+import { compressImage } from '@/lib/compress'
+import { isHeicFile, validateVideo } from '@/lib/files'
+import type { Incident, IncidentKind, SvItem } from '@/lib/database.types'
+import { fetchAllPages } from '@/lib/paginate'
 
 export async function fetchItems(): Promise<SvItem[]> {
-  const { data, error } = await supabase
-    .from('sv_items')
-    .select('id,name,category,base_unit')
-    .order('name')
-  if (error) throw error
-  return data ?? []
+  return fetchAllPages<SvItem>((from, to) =>
+    supabase
+      .from('sv_items')
+      .select('id,name,category,base_unit,pack_size,pack_label')
+      .order('name')
+      .order('id')
+      .range(from, to),
+  )
 }
 
-export async function fetchMyIncidents(): Promise<Incident[]> {
-  const { data, error } = await supabase
-    .from('incidents')
-    .select('id,apartment_id,item_id,free_text,kind,qty,status,photo_paths,comment,created_by,created_at,resolved_by,resolved_at,resolution_note,writeoff_move_id,client_op_id')
-    .order('created_at', { ascending: false })
-  if (error) throw error
-  return data ?? []
+export async function fetchMyIncidents(userId: string): Promise<Incident[]> {
+  return fetchAllPages<Incident>((from, to) =>
+    supabase
+      .from('incidents')
+      .select('id,apartment_id,item_id,free_text,kind,qty,status,photo_paths,comment,created_by,created_at,resolved_by,resolved_at,resolution_note,writeoff_move_id,client_op_id')
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to),
+  )
 }
 
 export async function createIncident(params: {
@@ -30,7 +38,7 @@ export async function createIncident(params: {
   photoPaths: string[]
   clientOpId: string
 }): Promise<void> {
-  const { error } = await supabase.from('incidents').insert({
+  const { error, status } = await supabase.from('incidents').insert({
     apartment_id: params.apartmentId,
     item_id: params.itemId,
     free_text: params.freeText,
@@ -42,9 +50,9 @@ export async function createIncident(params: {
     client_op_id: params.clientOpId,
   })
   if (error) {
-    const apiError = toApiError(error)
+    const apiError = toApiError(error, status)
     if (apiError.code === '23505') return
-    throw error
+    throw apiError
   }
 }
 
@@ -57,6 +65,14 @@ export async function uploadIncidentPhoto(
   userId: string,
   file: File,
 ): Promise<string> {
+  if (isHeicFile(file)) {
+    try {
+      await compressImage(file, 1280, 0.8)
+    } catch {
+      throw toApiError(new Error('Формат HEIC не поддерживается, снимите в JPEG'))
+    }
+  }
+
   const uuid = crypto.randomUUID()
   const path = `${userId}/${uuid}.jpg`
 
@@ -64,48 +80,25 @@ export async function uploadIncidentPhoto(
   const { error } = await supabase.storage
     .from('incident-photos')
     .upload(path, compressed, { contentType: 'image/jpeg' })
-  if (error) throw error
+  if (error) throw toApiError(error)
   return path
 }
 
-function compressImage(file: File, maxSize: number, quality: number): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        let { width, height } = img
-        if (width > maxSize || height > maxSize) {
-          if (width > height) {
-            height = Math.round((height * maxSize) / width)
-            width = maxSize
-          } else {
-            width = Math.round((width * maxSize) / height)
-            height = maxSize
-          }
-        }
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Canvas not supported'))
-          return
-        }
-        ctx.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob)
-            else reject(new Error('Compression failed'))
-          },
-          'image/jpeg',
-          quality,
-        )
-      }
-      img.onerror = () => reject(new Error('Image load failed'))
-      img.src = e.target?.result as string
-    }
-    reader.onerror = () => reject(new Error('File read failed'))
-    reader.readAsDataURL(file)
-  })
+export async function uploadNoteVideo(
+  userId: string,
+  apartmentId: number,
+  file: File,
+): Promise<string> {
+  const validationError = validateVideo(file)
+  if (validationError) throw toApiError(new Error(validationError))
+
+  const mime = file.type || 'video/mp4'
+  const ext = mime === 'video/quicktime' ? '.mov' : mime === 'video/webm' ? '.webm' : '.mp4'
+  const path = `${userId}/notes/${apartmentId}/${crypto.randomUUID()}${ext}`
+
+  const { error } = await supabase.storage
+    .from('incident-photos')
+    .upload(path, file, { contentType: mime })
+  if (error) throw toApiError(error)
+  return path
 }

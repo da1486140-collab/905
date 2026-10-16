@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
-import { Plus, Trash2, Eye, EyeOff, Copy, Check, X, Lock, CreditCard as Edit3, Shield, QrCode, UserCheck } from 'lucide-react'
+import { Plus, Trash2, Eye, EyeOff, Copy, Check, X, Lock, CreditCard as Edit3, Shield, QrCode, UserCheck, ShieldCheck } from 'lucide-react'
 import type { AppRole } from '@/lib/database.types'
 
 async function invokeAdminUsers(body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -48,6 +48,7 @@ export function UsersPage() {
   const [renaming, setRenaming] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all')
+  const [changingRole, setChangingRole] = useState<string | null>(null)
 
   const load = async () => {
     try {
@@ -85,6 +86,19 @@ export function UsersPage() {
       const msg = errorMessage(e)
       if (msg === 'self') toast(t.admin.users.selfDeleteError, 'error')
       else if (msg === 'last_admin') toast(t.admin.users.lastAdminError, 'error')
+      else toast(msg, 'error')
+    }
+  }
+
+  const handleRoleChange = async (id: string, role: AppRole) => {
+    try {
+      await invokeAdminUsers({ action: 'set_role', id, role })
+      toast(t.admin.users.renamed, 'success')
+      setChangingRole(null)
+      load()
+    } catch (e) {
+      const msg = errorMessage(e)
+      if (msg === 'last_admin') toast(t.admin.users.lastAdminError, 'error')
       else toast(msg, 'error')
     }
   }
@@ -190,6 +204,13 @@ export function UsersPage() {
                     <Trash2 className="w-3 h-3" />
                     {t.admin.users.delete}
                   </button>
+                  <button
+                    onClick={() => setChangingRole(u.id)}
+                    className="text-xs bg-app text-ink rounded-lg px-3 py-1.5 flex items-center gap-1.5"
+                  >
+                    <ShieldCheck className="w-3 h-3" />
+                    {t.admin.users.roleLabel}
+                  </button>
                 </div>
               </div>
             )
@@ -240,6 +261,35 @@ export function UsersPage() {
               >
                 {t.admin.users.rename}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {changingRole && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
+          <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-ink">{t.admin.users.roleLabel}</h3>
+              <button onClick={() => setChangingRole(null)}><X className="w-5 h-5 text-muted" /></button>
+            </div>
+            <div className="space-y-2">
+              {(['admin', 'manager', 'supervisor'] as const).map((r) => {
+                const badge = ROLE_BADGE[r]
+                const RoleIcon = badge.icon
+                return (
+                  <button
+                    key={r}
+                    onClick={() => handleRoleChange(changingRole, r)}
+                    className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors border ${
+                      users.find((u) => u.id === changingRole)?.role === r ? 'border-accent bg-accent-soft' : 'border-line bg-app hover:bg-surface'
+                    }`}
+                  >
+                    <RoleIcon className={`w-4 h-4 ${badge.text}`} />
+                    <span className="text-sm text-ink">{roleLabel(r)}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
+import { toApiError } from '@/lib/errors'
 import type { CleaningResult } from '@/lib/database.types'
 import { addOutboxEntry, flushOutbox } from '@/lib/outbox'
-import { toApiError } from '@/lib/errors'
 
 export async function completeCleaning(params: {
   apartmentId: number
@@ -11,7 +11,7 @@ export async function completeCleaning(params: {
   leadStaffId: number | null
   note: string | null
 }): Promise<CleaningResult> {
-  const { data, error } = await supabase.rpc('complete_cleaning', {
+  const { data, error, status } = await supabase.rpc('complete_cleaning', {
     p_apartment_id: params.apartmentId,
     p_cleaned_at: params.cleanedAt,
     p_client_op_id: params.clientOpId,
@@ -19,7 +19,7 @@ export async function completeCleaning(params: {
     p_lead_staff_id: params.leadStaffId,
     p_note: params.note,
   })
-  if (error) throw error
+  if (error) throw toApiError(error, status)
   return data as CleaningResult
 }
 

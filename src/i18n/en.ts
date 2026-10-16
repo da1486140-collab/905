@@ -474,6 +474,7 @@ export const en: Dict = {
       writeoff: 'Write-off',
       inventory: 'Inventory',
       noDocs: 'No documents',
+      loadMore: 'Load more',
       detail: 'Document',
       moves: 'Movements',
       attachments: 'Attachments',

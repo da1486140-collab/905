@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const cors = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ADMIN_CORS_ORIGIN') ?? '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
@@ -96,7 +96,18 @@ Deno.serve(async (req) => {
       case 'rename': {
         const target = await loadTarget();
         if (!target) return json({ error: 'Пользователь не найден' }, 404);
-        await admin.from('profiles').update({ full_name: String(b.full_name ?? '').trim() }).eq('id', b.id);
+        const name = String(b.full_name ?? '').trim();
+        if (!name) return json({ error: 'Укажите имя' }, 400);
+        await admin.from('profiles').update({ full_name: name }).eq('id', b.id);
+        return json({ ok: true });
+      }
+      case 'set_role': {
+        const target = await loadTarget();
+        if (!target) return json({ error: 'Пользователь не найден' }, 404);
+        if (!['admin', 'manager', 'supervisor'].includes(String(b.role))) return json({ error: 'Недопустимая роль' }, 400);
+        if (target.role === 'admin' && b.role !== 'admin' && (await countAdmins(target.id)) === 0) return json({ error: 'last_admin' }, 400);
+        const { error } = await admin.from('profiles').update({ role: b.role }).eq('id', b.id);
+        if (error) return json({ error: error.message }, 400);
         return json({ ok: true });
       }
       case 'delete': {

@@ -1,26 +1,47 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchDocuments } from '@/modules/admin/api'
 import type { DocumentWithSupplier } from '@/lib/database.types'
 import { useI18n } from '@/i18n'
 import { formatDate } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
-import { FileText, ChevronRight } from 'lucide-react'
+import { FileText, ChevronRight, Loader } from 'lucide-react'
+
+const PAGE_SIZE = 50
 
 export function DocumentsPage() {
   const { t, n } = useI18n()
   const navigate = useNavigate()
   const [docs, setDocs] = useState<DocumentWithSupplier[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [filter, setFilter] = useState<string>('all')
 
   useEffect(() => {
     setLoading(true)
-    fetchDocuments(filter)
-      .then(setDocs)
+    fetchDocuments(filter, 0, PAGE_SIZE)
+      .then((data) => {
+        setDocs(data)
+        setHasMore(data.length === PAGE_SIZE)
+      })
       .catch((e) => toast(errorMessage(e), 'error'))
       .finally(() => setLoading(false))
   }, [filter])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    try {
+      const next = await fetchDocuments(filter, docs.length, PAGE_SIZE)
+      setDocs((prev) => [...prev, ...next])
+      setHasMore(next.length === PAGE_SIZE)
+    } catch (e) {
+      toast(errorMessage(e), 'error')
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [filter, docs.length, loadingMore, hasMore])
 
   const typeLabels: Record<string, string> = {
     receipt: t.admin.documents.receipt,
@@ -66,30 +87,42 @@ export function DocumentsPage() {
       ) : docs.length === 0 ? (
         <p className="text-sm text-muted text-center mt-8">{t.admin.documents.noDocs}</p>
       ) : (
-        <div className="space-y-2">
-          {docs.map((doc) => (
+        <>
+          <div className="space-y-2">
+            {docs.map((doc) => (
+              <button
+                key={doc.id}
+                onClick={() => navigate(`/admin/more/documents/${doc.id}`)}
+                className="w-full bg-surface border border-line rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-accent transition-colors"
+              >
+                <FileText className="w-5 h-5 text-accent shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-ink">{doc.number}</span>
+                    <span className="text-xs text-muted">{typeLabels[doc.doc_type] ?? doc.doc_type}</span>
+                  </div>
+                  <div className="text-xs text-muted">
+                    {formatDate(doc.doc_date)}
+                    {doc.supplier_name && ` · ${doc.supplier_name}`}
+                    {doc.total_cost != null && ` · ${n(String(doc.total_cost))} EGP`}
+                  </div>
+                </div>
+                <span className="text-xs text-muted shrink-0">{statusLabels[doc.status] ?? doc.status}</span>
+                <ChevronRight className="w-4 h-4 text-muted shrink-0" />
+              </button>
+            ))}
+          </div>
+          {hasMore && (
             <button
-              key={doc.id}
-              onClick={() => navigate(`/admin/more/documents/${doc.id}`)}
-              className="w-full bg-surface border border-line rounded-xl px-4 py-3 flex items-center gap-3 text-left hover:border-accent transition-colors"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="mt-4 w-full bg-surface border border-line rounded-xl py-3 text-sm text-muted hover:bg-app transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
             >
-              <FileText className="w-5 h-5 text-accent shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-ink">{doc.number}</span>
-                  <span className="text-xs text-muted">{typeLabels[doc.doc_type] ?? doc.doc_type}</span>
-                </div>
-                <div className="text-xs text-muted">
-                  {formatDate(doc.doc_date)}
-                  {doc.supplier_name && ` · ${doc.supplier_name}`}
-                  {doc.total_cost != null && ` · ${n(String(doc.total_cost))} EGP`}
-                </div>
-              </div>
-              <span className="text-xs text-muted shrink-0">{statusLabels[doc.status] ?? doc.status}</span>
-              <ChevronRight className="w-4 h-4 text-muted shrink-0" />
+              {loadingMore && <Loader className="w-4 h-4 animate-spin" />}
+              {t.admin.documents.loadMore}
             </button>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   )

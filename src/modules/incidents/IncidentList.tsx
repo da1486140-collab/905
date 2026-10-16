@@ -6,7 +6,7 @@ import { useAuth } from '@/modules/core/store'
 import type { Incident, SvApartment, IncidentStatus, IncidentKind } from '@/lib/database.types'
 import { useI18n } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
-import { Plus, Wrench, Package, AlertCircle } from 'lucide-react'
+import { Plus, Wrench, Package, CircleAlert as AlertCircle } from 'lucide-react'
 
 const statusColors: Record<IncidentStatus, string> = {
   new: 'bg-warn-soft text-warn',
@@ -42,7 +42,7 @@ export function IncidentList() {
 
   useEffect(() => {
     if (!profile) return
-    Promise.all([fetchMyIncidents(), fetchApartments(profile.id)])
+    Promise.all([fetchMyIncidents(profile.id), fetchApartments(profile.id)])
       .then(([inc, apts]) => { setIncidents(inc); setApartments(apts) })
       .catch(() => {})
       .finally(() => setLoading(false))

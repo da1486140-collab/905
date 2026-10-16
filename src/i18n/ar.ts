@@ -475,6 +475,7 @@ export const ar: Dict = {
       writeoff: 'خصم',
       inventory: 'جرد',
       noDocs: 'مفيش مستندات',
+      loadMore: 'حمّل أكتر',
       detail: 'مستند',
       moves: 'الحركات',
       attachments: 'مرفقات',

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchToOrder, fetchApartmentGaps, fetchShortageEvents, fetchApartmentsAdmin, fetchBuildings, fetchAllIncidents } from '@/modules/admin/api'
-import type { ToOrderRow, ApartmentGapRow, EventRow, Apartment, Building, AptType, Incident } from '@/lib/database.types'
+import { fetchToOrder, fetchApartmentGaps, fetchShortageEvents, fetchApartmentsAdmin, fetchBuildings, fetchAllIncidents, ackEvents } from '@/modules/admin/api'
+import type { ToOrderRow, ApartmentGapRow, Apartment, Building, AptType, Incident, NormalizedShortageEvent } from '@/lib/database.types'
 import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
-import { AlertTriangle, TrendingDown, PackageX, ClipboardList, Boxes, Wrench, ArrowDownToLine, Trash2, CheckCircle2 } from 'lucide-react'
+import { TriangleAlert as AlertTriangle, TrendingDown, PackageX, ClipboardList, Boxes, Wrench, ArrowDownToLine, Trash2, CircleCheck as CheckCircle2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 function pctColor(p: number): string {
@@ -29,7 +29,7 @@ export function Dashboard() {
   const navigate = useNavigate()
   const [toOrder, setToOrder] = useState<ToOrderRow[]>([])
   const [gaps, setGaps] = useState<ApartmentGapRow[]>([])
-  const [shortages, setShortages] = useState<EventRow[]>([])
+  const [shortages, setShortages] = useState<NormalizedShortageEvent[]>([])
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [buildings, setBuildings] = useState<Building[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -48,6 +48,15 @@ export function Dashboard() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
+
+  const handleAck = async (id: number) => {
+    try {
+      await ackEvents([id])
+      setShortages((prev) => prev.filter((ev) => ev.id !== id))
+    } catch {
+      // leave as-is; user can retry
+    }
+  }
 
   const buildingMap = useMemo(() => new Map(buildings.map((b) => [b.id, b.name])), [buildings])
 
@@ -202,18 +211,26 @@ export function Dashboard() {
             <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t.admin.dashboard.unprocessedShortages}</h2>
           </div>
           <div className="space-y-2">
-            {shortages.map((ev) => {
-              const payload = ev.payload as { items?: Array<{ item: string; balance: number }> }
-              return (
-                <div key={ev.id} className="bg-surface rounded-xl border border-line px-4 py-3">
-                  {payload.items?.map((it, i) => (
-                    <p key={i} className="text-sm text-bad">
-                      {it.item}: {n(String(it.balance))}
-                    </p>
-                  ))}
+            {shortages.map((ev) => (
+              <div key={ev.id} className="bg-surface rounded-xl border border-line px-4 py-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    {ev.items.map((it, i) => (
+                      <p key={i} className="text-sm text-bad">
+                        {it.name}: {n(String(it.qty))}
+                      </p>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleAck(ev.id)}
+                    className="text-muted hover:text-bad shrink-0"
+                    aria-label="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}

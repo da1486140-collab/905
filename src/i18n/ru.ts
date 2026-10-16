@@ -472,6 +472,7 @@ export const ru = {
       writeoff: 'Списание',
       inventory: 'Инвентаризация',
       noDocs: 'Документов нет',
+      loadMore: 'Загрузить ещё',
       detail: 'Документ',
       moves: 'Движения',
       attachments: 'Вложения',

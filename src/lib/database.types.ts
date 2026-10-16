@@ -131,6 +131,7 @@ export interface SvNorm {
   base_unit: BaseUnit
   pack_label: string
   qty: number
+  pack_size: number
 }
 
 export interface SvStaff {
@@ -143,6 +144,8 @@ export interface SvItem {
   name: string
   category: string
   base_unit: BaseUnit
+  pack_size: number
+  pack_label: string
 }
 
 export interface SvCleaningEvent {
@@ -224,7 +227,7 @@ export interface ApartmentGapRow {
 }
 
 export interface EventRow {
-  id: string
+  id: number
   type: string
   payload: Json
   created_at: string
@@ -321,4 +324,29 @@ export interface PostDocumentResult {
   doc_id: string
   doc_number: string
   lines: number
+}
+
+export interface ReverseCleaningResult {
+  event_id: string
+  status: EventStatus
+}
+
+export interface RecalculateCleaningResult extends CleaningResult {}
+
+export interface ApproveIncidentResult {
+  status: 'confirmed' | 'rejected'
+  move_id?: number | null
+}
+
+export interface NormalizedShortageItem {
+  name: string
+  qty: number
+  unit: string
+}
+
+export interface NormalizedShortageEvent {
+  id: number
+  type: string
+  created_at: string
+  items: NormalizedShortageItem[]
 }
