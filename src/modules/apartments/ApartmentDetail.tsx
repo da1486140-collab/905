@@ -5,7 +5,7 @@ import type { SvApartment, SvNorm, ApartmentNote, NormType } from '@/lib/databas
 import { useAuth } from '@/modules/core/store'
 import { useI18n } from '@/i18n'
 import { formatDateTime, isToday, formatQty } from '@/lib/format'
-import { ArrowLeft, Wrench, Sparkles, ClipboardList, Send, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Wrench, Sparkles, ClipboardList, Send, CircleCheck as CheckCircle2 } from 'lucide-react'
 
 type Tab = 'norms' | 'comments'
 
@@ -105,7 +105,7 @@ export function ApartmentDetail() {
                       <div key={`${nr.item_id}-${nr.norm_type}`} className="px-4 py-3 flex items-center justify-between">
                         <span className="text-sm text-ink">{nr.item_name}</span>
                         <span className="text-sm text-muted">
-                          {n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_label ? 2 : 1, pack_label: nr.pack_label }))}
+                          {n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_size, pack_label: nr.pack_label }))}
                         </span>
                       </div>
                     ))}

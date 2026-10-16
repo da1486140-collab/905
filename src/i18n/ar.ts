@@ -26,6 +26,7 @@ export const ar: Dict = {
     incidents: 'طلبات',
     contacts: 'أرقام',
     profile: 'حسابي',
+    qr: 'QR',
   },
   apartments: {
     search: 'دوّر بالكود',
@@ -143,6 +144,10 @@ export const ar: Dict = {
     clipboardError: 'غلط في النسخ',
     videoMetadataError: 'مفيش قراءة للفيديو',
     units: { pcs: 'قطعة', g: 'جم', ml: 'مل' },
+    receiptFormat: 'صيغة الإيصال مش مدعومة (لازم JPEG/PNG/WebP/PDF)',
+    receiptTooBig: 'الملف أكبر من ١٠ ميجا',
+    videoFormat: 'صيغة الفيديو مش مدعومة (لازم MP4/MOV/WebM)',
+    videoTooBig: 'الملف أكبر من ٥٠ ميجا',
   },
   qr: {
     title: 'QR الشقق',
@@ -218,6 +223,8 @@ export const ar: Dict = {
       issue: 'صرف',
       writeoff: 'خصم',
       assemble: 'تجهيز الشقق',
+      ackAll: 'علّم الكل كتمام',
+      ackOne: 'تمام',
     },
     stock: {
       title: 'المخزن',
@@ -266,6 +273,8 @@ export const ar: Dict = {
       openDoc: 'افتح المستند',
       resultTitle: 'العملية اتنفذت',
       resultLines: 'حاجات',
+      inStock: 'في المخزن',
+      overStock: 'مفيش كفاية في المخزن',
     },
     apartments: {
       title: 'الشقق',
@@ -388,6 +397,7 @@ export const ar: Dict = {
       selfDeleteError: 'مينفعش تمسح نفسك',
       lastAdminError: 'مينفعش تمسح آخر مدير',
       selfDeactivateError: 'مينفعش تقفل حسابك',
+      passwordHint: 'على الأقل ٨ حروف',
     },
     adminIncidents: {
       title: 'طلبات الأعطال',

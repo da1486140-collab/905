@@ -58,7 +58,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/sv/*" element={role === 'admin' || role === 'supervisor' ? <SvRoutes /> : <Navigate to={home} replace />} />
-          <Route path="/qr/*" element={role === 'admin' || role === 'manager' ? <QrRoutes /> : <Navigate to={home} replace />} />
+          <Route path="/qr/*" element={role === 'admin' || role === 'manager' || role === 'supervisor' ? <QrRoutes /> : <Navigate to={home} replace />} />
           <Route path="/admin/*" element={role === 'admin' ? <AdminRoutes /> : <Navigate to={home} replace />} />
           <Route path="*" element={<Navigate to={home} replace />} />
         </Routes>

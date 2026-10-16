@@ -7,7 +7,7 @@ import type { SvNorm, SvStaff, NormType, CleaningResult } from '@/lib/database.t
 import { useI18n } from '@/i18n'
 import { friendlyMessage } from '@/lib/errors'
 import { formatQty } from '@/lib/format'
-import { X, Check, Loader2, AlertTriangle, Star, RefreshCw } from 'lucide-react'
+import { X, Check, Loader as Loader2, TriangleAlert as AlertTriangle, Star, RefreshCw } from 'lucide-react'
 
 const writeoffTypes: NormType[] = ['turnover_replenish', 'cleaning_consumption']
 
@@ -186,7 +186,7 @@ export function CleaningSheet({ backTo }: { backTo?: string }) {
                 {writeoffItems.map((nr) => (
                   <div key={`${nr.item_id}-${nr.norm_type}`} className="px-3 py-2.5 flex items-center justify-between">
                     <span className="text-sm text-ink">{nr.item_name}</span>
-                    <span className="text-sm text-muted">{n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_label ? 2 : 1, pack_label: nr.pack_label }))}</span>
+                    <span className="text-sm text-muted">{n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_size, pack_label: nr.pack_label }))}</span>
                   </div>
                 ))}
               </div>

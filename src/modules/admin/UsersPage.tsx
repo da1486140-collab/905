@@ -405,7 +405,7 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
                 type={showPw ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="мин. 8 символов"
+                placeholder={t.admin.users.passwordHint}
                 className="w-full bg-app rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none"
               />
               <button onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">

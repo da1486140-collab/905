@@ -78,20 +78,26 @@ export function formatNum(value: number, opts?: Intl.NumberFormatOptions): strin
   return value.toLocaleString(locale(), opts)
 }
 
-export function cairoLocalToISO(localStr: string): string | null {
-  if (!localStr) return null
-  const fakeUTC = new Date(localStr + ':00Z')
+function cairoOffsetMs(instant: Date): number {
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: cairoTz,
     timeZoneName: 'shortOffset',
   })
-  const parts = fmt.formatToParts(fakeUTC)
+  const parts = fmt.formatToParts(instant)
   const tz = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+2'
   const m = tz.match(/GMT([+-])(\d+)(?::(\d+))?/)
-  if (!m) return fakeUTC.toISOString()
+  if (!m) return 2 * 3600_000
   const sign = m[1] === '-' ? -1 : 1
   const hours = parseInt(m[2], 10)
   const mins = parseInt(m[3] ?? '0', 10)
-  const offsetMs = sign * (hours * 60 + mins) * 60000
-  return new Date(fakeUTC.getTime() - offsetMs).toISOString()
+  return sign * (hours * 60 + mins) * 60_000
+}
+
+export function cairoLocalToISO(localStr: string): string | null {
+  if (!localStr) return null
+  const fakeUTC = new Date(localStr + ':00Z')
+  const offset1 = cairoOffsetMs(fakeUTC)
+  const candidate = new Date(fakeUTC.getTime() - offset1)
+  const offset2 = cairoOffsetMs(candidate)
+  return new Date(fakeUTC.getTime() - offset2).toISOString()
 }

@@ -25,6 +25,7 @@ export const en: Dict = {
     incidents: 'Requests',
     contacts: 'Contacts',
     profile: 'Profile',
+    qr: 'QR',
   },
   apartments: {
     search: 'Search by code',
@@ -142,6 +143,10 @@ export const en: Dict = {
     clipboardError: 'Clipboard error',
     videoMetadataError: 'Cannot read video metadata',
     units: { pcs: 'pcs', g: 'g', ml: 'ml' },
+    receiptFormat: 'Unsupported receipt format (need JPEG/PNG/WebP/PDF)',
+    receiptTooBig: 'File exceeds 10 MB',
+    videoFormat: 'Unsupported video format (need MP4/MOV/WebM)',
+    videoTooBig: 'File exceeds 50 MB',
   },
   qr: {
     title: 'Apartment QR',
@@ -217,6 +222,8 @@ export const en: Dict = {
       issue: 'Issue',
       writeoff: 'Write off',
       assemble: 'Complete apartments',
+      ackAll: 'Mark all processed',
+      ackOne: 'Mark processed',
     },
     stock: {
       title: 'Stock',
@@ -265,6 +272,8 @@ export const en: Dict = {
       openDoc: 'Open document',
       resultTitle: 'Operation posted',
       resultLines: 'items',
+      inStock: 'In stock',
+      overStock: 'Not enough in stock',
     },
     apartments: {
       title: 'Apartments',
@@ -387,6 +396,7 @@ export const en: Dict = {
       selfDeleteError: 'Cannot delete yourself',
       lastAdminError: 'Cannot delete the last administrator',
       selfDeactivateError: 'Cannot deactivate yourself',
+      passwordHint: 'min. 8 characters',
     },
     adminIncidents: {
       title: 'Breakdown requests',

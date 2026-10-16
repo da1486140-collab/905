@@ -98,10 +98,10 @@ export function QrApartmentPage() {
   }, [aptId, loadAll, profile?.id])
 
   useEffect(() => {
-    const onVisible = () => { if (document.visibilityState === 'visible') loadAll().catch(() => {}) }
+    const onVisible = () => { if (document.visibilityState === 'visible' && navigator.onLine) loadAll().catch(() => {}) }
     window.addEventListener('focus', onVisible)
     document.addEventListener('visibilitychange', onVisible)
-    const interval = setInterval(() => { if (document.visibilityState === 'visible') loadAll().catch(() => {}) }, 20000)
+    const interval = setInterval(() => { if (document.visibilityState === 'visible' && navigator.onLine) loadAll().catch(() => {}) }, 20000)
     return () => {
       window.removeEventListener('focus', onVisible)
       document.removeEventListener('visibilitychange', onVisible)
@@ -285,7 +285,7 @@ export function QrApartmentPage() {
                           )}
                         </div>
                         <span className="text-sm text-muted shrink-0 ml-2">
-                          {n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_label ? 2 : 1, pack_label: nr.pack_label }))}
+                          {n(formatQty(nr.qty, { base_unit: nr.base_unit, pack_size: nr.pack_size, pack_label: nr.pack_label }))}
                         </span>
                       </div>
                     ))}

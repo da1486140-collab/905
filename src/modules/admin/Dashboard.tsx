@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { fetchToOrder, fetchApartmentGaps, fetchShortageEvents, fetchApartmentsAdmin, fetchBuildings, fetchAllIncidents, ackEvents } from '@/modules/admin/api'
 import type { ToOrderRow, ApartmentGapRow, Apartment, Building, AptType, Incident, NormalizedShortageEvent } from '@/lib/database.types'
 import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
-import { TriangleAlert as AlertTriangle, TrendingDown, PackageX, ClipboardList, Boxes, Wrench, ArrowDownToLine, Trash2, CircleCheck as CheckCircle2, X } from 'lucide-react'
+import { TriangleAlert as AlertTriangle, TrendingDown, PackageX, ClipboardList, Boxes, Wrench, ArrowDownToLine, Trash2, CircleCheck as CheckCircle2, X, CheckCheck } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { ErrorState } from '@/components/ErrorState'
 
 function pctColor(p: number): string {
   if (p >= 100) return 'var(--ok)'
@@ -13,7 +14,6 @@ function pctColor(p: number): string {
 }
 
 function ProgressBar({ value, color, className }: { value: number; color: string; className?: string }) {
-  const { t, n } = useI18n()
   return (
     <span className={`block h-1.5 rounded-full overflow-hidden ${className ?? ''}`} style={{ background: 'var(--line)' }}>
       <span
@@ -34,25 +34,43 @@ export function Dashboard() {
   const [buildings, setBuildings] = useState<Building[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
 
-  useEffect(() => {
-    Promise.all([fetchToOrder(), fetchApartmentGaps(), fetchShortageEvents(), fetchApartmentsAdmin(), fetchBuildings(), fetchAllIncidents()])
-      .then(([to, ga, sh, ap, bl, inc]) => {
-        setToOrder(to)
-        setGaps(ga)
-        setShortages(sh)
-        setApartments(ap)
-        setBuildings(bl)
-        setIncidents(inc)
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const [to, ga, sh, ap, bl, inc] = await Promise.all([fetchToOrder(), fetchApartmentGaps(), fetchShortageEvents(), fetchApartmentsAdmin(), fetchBuildings(), fetchAllIncidents()])
+      setToOrder(to)
+      setGaps(ga)
+      setShortages(sh)
+      setApartments(ap)
+      setBuildings(bl)
+      setIncidents(inc)
+    } catch {
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => { loadData() }, [loadData])
 
   const handleAck = async (id: number) => {
     try {
       await ackEvents([id])
       setShortages((prev) => prev.filter((ev) => ev.id !== id))
+    } catch {
+      // leave as-is; user can retry
+    }
+  }
+
+  const handleAckAll = async () => {
+    const ids = shortages.map((ev) => ev.id)
+    if (ids.length === 0) return
+    try {
+      await ackEvents(ids)
+      setShortages([])
     } catch {
       // leave as-is; user can retry
     }
@@ -91,6 +109,10 @@ export function Dashboard() {
     return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
   }
 
+  if (loadError) {
+    return <ErrorState onRetry={loadData} />
+  }
+
   const incompleteCount = Array.from(gapApartments.values()).filter((a) => a.items.length > 0).length
   const pendingIncidents = incidents.filter((incident) => incident.status === 'new').length
 
@@ -98,7 +120,7 @@ export function Dashboard() {
     { label: t.admin.dashboard.toOrder, count: toOrder.length, icon: TrendingDown, tone: 'text-bad', to: '/admin/stock?below=1' },
     { label: t.admin.dashboard.gaps, count: incompleteCount, icon: Boxes, tone: 'text-warn', to: '/admin/apartments' },
     { label: t.admin.dashboard.pendingIncidents, count: pendingIncidents, icon: ClipboardList, tone: 'text-accent', to: '/admin/more/incidents' },
-    { label: t.admin.dashboard.unprocessedShortages, count: shortages.length, icon: AlertTriangle, tone: 'text-bad', to: '/admin' },
+    { label: t.admin.dashboard.unprocessedShortages, count: shortages.length, icon: AlertTriangle, tone: 'text-bad', to: '/admin/stock' },
   ]
 
   return (
@@ -144,18 +166,21 @@ export function Dashboard() {
             <p className="text-muted text-sm">{t.admin.dashboard.noToOrder}</p>
           ) : (
             <>
-              {toOrder.slice(0, 10).map((r) => (
-                <div key={r.item_id} className="flex items-center gap-3 py-2.5 border-t border-line first:border-t-0">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-ink truncate">{r.name}</div>
-                    <div className="text-muted text-xs">{r.category}, {n(formatQty(r.qty, r))} / {n(String(r.min_stock))}</div>
-                    <ProgressBar value={(r.qty / r.min_stock) * 100} color="var(--bad)" className="mt-1.5" />
+              {toOrder.slice(0, 10).map((r) => {
+                const ratio = r.min_stock > 0 ? (r.qty / r.min_stock) * 100 : 0
+                return (
+                  <div key={r.item_id} className="flex items-center gap-3 py-2.5 border-t border-line first:border-t-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-ink truncate">{r.name}</div>
+                      <div className="text-muted text-xs">{r.category}, {n(formatQty(r.qty, r))} / {n(formatQty(r.min_stock, r))}</div>
+                      <ProgressBar value={ratio} color="var(--bad)" className="mt-1.5" />
+                    </div>
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-bad-soft text-bad">
+                      {t.admin.dashboard.shortage}: {n(formatQty(r.shortage, r))}
+                    </span>
                   </div>
-                  <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-bad-soft text-bad">
-                    {t.admin.dashboard.shortage}: {n(String(r.shortage))}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
               <button
                 onClick={() => navigate('/admin/move')}
                 className="mt-3 bg-surface border border-line text-ink rounded-lg px-3.5 py-2 text-sm font-medium transition-colors hover:bg-app"
@@ -206,9 +231,18 @@ export function Dashboard() {
       {/* Shortage events */}
       {shortages.length > 0 && (
         <div className="mt-5">
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <AlertTriangle className="w-4 h-4 text-bad" />
-            <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t.admin.dashboard.unprocessedShortages}</h2>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-bad" />
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t.admin.dashboard.unprocessedShortages}</h2>
+            </div>
+            <button
+              onClick={handleAckAll}
+              className="flex items-center gap-1 text-xs text-muted hover:text-ok font-medium"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              {t.admin.dashboard.ackAll}
+            </button>
           </div>
           <div className="space-y-2">
             {shortages.map((ev) => (
@@ -223,8 +257,8 @@ export function Dashboard() {
                   </div>
                   <button
                     onClick={() => handleAck(ev.id)}
-                    className="text-muted hover:text-bad shrink-0"
-                    aria-label="Dismiss"
+                    className="text-muted hover:text-bad shrink-0 p-1"
+                    aria-label={t.admin.dashboard.ackOne}
                   >
                     <X className="w-4 h-4" />
                   </button>

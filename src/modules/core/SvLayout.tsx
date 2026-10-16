@@ -1,12 +1,18 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { LangSwitcher } from '@/components/LangSwitcher'
-import { Building2, Wrench, Phone, User } from 'lucide-react'
+import { Building2, Wrench, Phone, User, LayoutDashboard, QrCode } from 'lucide-react'
 import { useEffect } from 'react'
+import { useAuth, homePathForRole } from '@/modules/core/store'
 
 export function SvLayout({ children }: { children: React.ReactNode }) {
   const { t, lang } = useI18n()
   const { pathname } = useLocation()
+  const profile = useAuth((s) => s.profile)
+
+  const adminLink = profile && (profile.role === 'admin' || profile.role === 'manager')
+    ? homePathForRole(profile.role)
+    : null
 
   const tabs = [
     { to: '/sv', icon: Building2, label: t.nav.apartments, end: true },
@@ -24,7 +30,20 @@ export function SvLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-app flex flex-col">
       <div className="flex items-center justify-between px-4 py-2 bg-surface border-b border-line sticky top-0 z-30 max-w-lg mx-auto w-full">
         <span className="font-semibold text-ink text-sm">{t.app.name}</span>
-        <LangSwitcher compact />
+        <div className="flex items-center gap-2">
+          {adminLink && (
+            <NavLink
+              to={adminLink}
+              className="flex items-center gap-1 text-xs text-muted hover:text-accent transition-colors"
+              aria-label={profile?.role === 'admin' ? t.admin.nav.home : t.nav.qr}
+            >
+              {profile?.role === 'admin'
+                ? <LayoutDashboard className="w-4 h-4" />
+                : <QrCode className="w-4 h-4" />}
+            </NavLink>
+          )}
+          <LangSwitcher compact />
+        </div>
       </div>
       <main className="flex-1 pb-20 max-w-lg mx-auto w-full">{children}</main>
       <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-line z-50">
@@ -37,7 +56,8 @@ export function SvLayout({ children }: { children: React.ReactNode }) {
                 key={tab.to}
                 to={tab.to}
                 end={tab.end}
-                className="flex-1 flex flex-col items-center gap-0.5 py-2.5"
+                aria-label={tab.label}
+                className="flex-1 flex flex-col items-center gap-0.5 py-3"
                 style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}
               >
                 <Icon

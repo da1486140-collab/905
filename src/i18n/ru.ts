@@ -23,6 +23,7 @@ export const ru = {
     incidents: 'Заявки',
     contacts: 'Контакты',
     profile: 'Профиль',
+    qr: 'QR',
   },
   apartments: {
     search: 'Поиск по коду',
@@ -140,6 +141,10 @@ export const ru = {
     clipboardError: 'Ошибка копирования',
     videoMetadataError: 'Не удалось прочитать видео',
     units: { pcs: 'шт', g: 'г', ml: 'мл' },
+    receiptFormat: 'Неподдерживаемый формат чека (нужен JPEG/PNG/WebP/PDF)',
+    receiptTooBig: 'Файл больше 10 МБ',
+    videoFormat: 'Неподдерживаемый формат видео (нужен MP4/MOV/WebM)',
+    videoTooBig: 'Файл больше 50 МБ',
   },
   qr: {
     title: 'QR квартир',
@@ -215,6 +220,8 @@ export const ru = {
       issue: 'Выдача',
       writeoff: 'Списание',
       assemble: 'Комплектовать',
+      ackAll: 'Отметить все обработанными',
+      ackOne: 'Обработано',
     },
     stock: {
       title: 'Склад',
@@ -263,6 +270,8 @@ export const ru = {
       openDoc: 'Открыть документ',
       resultTitle: 'Операция проведена',
       resultLines: 'позиций',
+      inStock: 'На складе',
+      overStock: 'Недостаточно на складе',
     },
     apartments: {
       title: 'Квартиры',
@@ -385,6 +394,7 @@ export const ru = {
       selfDeleteError: 'Нельзя удалить самого себя',
       lastAdminError: 'Нельзя удалить последнего администратора',
       selfDeactivateError: 'Нельзя отключить самого себя',
+      passwordHint: 'мин. 8 символов',
     },
     adminIncidents: {
       title: 'Заявки о поломках',

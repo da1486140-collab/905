@@ -52,12 +52,19 @@ function AdminBanner() {
 
 function MoveRoute() {
   const [show, setShow] = useState(true)
+  const goBack = () => {
+    if (window.history.length <= 1) {
+      window.location.href = '/admin'
+    } else {
+      window.history.back()
+    }
+  }
   return (
     <>
       {show && (
         <MoveModal
-          onClose={() => { setShow(false); window.history.back() }}
-          onDone={() => { setShow(false); window.history.back() }}
+          onClose={() => { setShow(false); goBack() }}
+          onDone={() => { setShow(false); goBack() }}
         />
       )}
     </>

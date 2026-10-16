@@ -1,3 +1,5 @@
+import { currentDict } from '@/i18n'
+
 const EXT_MIME: Record<string, string> = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
@@ -34,8 +36,9 @@ const RECEIPT_MAX = 10 * 1024 * 1024
 
 export function validateReceipt(file: File): string | null {
   const mime = resolveMime(file)
-  if (!mime || !RECEIPT_MIMES.has(mime)) return 'Формат чека не поддерживается (нужен JPEG/PNG/WebP/PDF)'
-  if (file.size > RECEIPT_MAX) return 'Файл больше 10 МБ'
+  const d = currentDict().common
+  if (!mime || !RECEIPT_MIMES.has(mime)) return d.receiptFormat
+  if (file.size > RECEIPT_MAX) return d.receiptTooBig
   return null
 }
 
@@ -44,8 +47,9 @@ const VIDEO_MAX = 50 * 1024 * 1024
 
 export function validateVideo(file: File): string | null {
   const mime = resolveMime(file)
-  if (!mime || !VIDEO_MIMES.has(mime)) return 'Формат видео не поддерживается (нужен MP4/MOV/WebM)'
-  if (file.size > VIDEO_MAX) return 'Файл больше 50 МБ'
+  const d = currentDict().common
+  if (!mime || !VIDEO_MIMES.has(mime)) return d.videoFormat
+  if (file.size > VIDEO_MAX) return d.videoTooBig
   return null
 }
 

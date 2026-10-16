@@ -73,7 +73,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               key={tab.to}
               to={tab.to}
               end={tab.end}
-              className="flex-1 flex flex-col items-center gap-0.5 py-1.5"
+              aria-label={tab.label}
+              className="flex-1 flex flex-col items-center gap-0.5 py-2"
               style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}
             >
               {isPlus ? (

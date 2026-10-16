@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { fetchWarehouseStock, fetchApartmentsAdmin, fetchAllStaff, fetchSuppliers, postDocument } from '@/modules/admin/api'
 import type { WarehouseStockRow, Apartment, Staff, Supplier, PostDocumentResult } from '@/lib/database.types'
 import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
-import { Plus, Minus, Trash2, Loader as Loader2, Check, X, FileText } from 'lucide-react'
+import { Plus, Minus, Trash2, Loader as Loader2, Check, X, FileText, TriangleAlert as AlertTriangle } from 'lucide-react'
 
 interface MoveOpDef {
   op: string
@@ -21,7 +21,9 @@ interface CartLine {
   packSize: number
   packLabel: string
   baseUnit: string
+  stockQty: number | null
   qty: string
+  unitMode: 'packs' | 'base'
   unitCost: string
 }
 
@@ -67,10 +69,13 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
   }, [])
 
   const opDef = ops.find((o) => o.op === op)!
+  const stockMap = useMemo(() => new Map(stock.map((s) => [s.item_id, s.qty])), [stock])
   const filteredStock = useMemo(
     () => stock.filter((s) => s.name.toLowerCase().includes(search.toLowerCase().trim())).slice(0, 20),
     [stock, search],
   )
+
+  const isOutbound = op !== 'receipt' && op !== 'return_apartment' && op !== 'return_holder'
 
   const addToCart = (item: WarehouseStockRow) => {
     setCart((prev) => {
@@ -81,7 +86,9 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
         packSize: item.pack_size,
         packLabel: item.pack_label,
         baseUnit: item.base_unit,
+        stockQty: item.qty,
         qty: '1',
+        unitMode: item.pack_size > 1 ? 'packs' : 'base',
         unitCost: '',
       }]
     })
@@ -95,7 +102,14 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
     setCart((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  const getBaseQty = (line: CartLine): number => {
+    const qtyNum = Number(line.qty)
+    if (line.unitMode === 'packs') return qtyNum * line.packSize
+    return qtyNum
+  }
+
   const handlePost = async () => {
+    if (posting) return
     if (cart.length === 0) {
       toast(t.admin.move.empty, 'error')
       return
@@ -110,10 +124,10 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
     }
     const lines = cart
       .map((line) => {
-        const qtyNum = Number(line.qty)
-        if (!qtyNum || qtyNum <= 0) return null
+        const baseQty = getBaseQty(line)
+        if (!baseQty || baseQty <= 0) return null
         const costNum = opDef.needsCost && line.unitCost ? Number(line.unitCost) : null
-        return { item_id: line.itemId, qty: qtyNum, unit_cost: costNum }
+        return { item_id: line.itemId, qty: baseQty, unit_cost: costNum }
       })
       .filter((l): l is { item_id: number; qty: number; unit_cost: number | null } => l !== null)
     if (lines.length === 0) {
@@ -156,7 +170,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
         <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 w-full max-w-sm bg-surface rounded-2xl p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-ink">{t.admin.move.resultTitle}</h2>
-            <button onClick={onClose} className="p-1">
+            <button onClick={onClose} className="p-1" aria-label={t.common.close}>
               <X className="w-5 h-5 text-muted" />
             </button>
           </div>
@@ -188,10 +202,15 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
   return (
     <>
       <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={onClose} />
-      <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 w-full max-w-sm max-h-[90vh] overflow-auto bg-surface rounded-2xl p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet max-md:max-h-[85vh]">
+      <div
+        className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 w-full max-w-sm max-h-[90dvh] overflow-auto bg-surface rounded-2xl p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet max-md:max-h-[85dvh]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.admin.move.title}
+      >
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-ink">{t.admin.move.title}</h2>
-          <button onClick={onClose} className="p-1">
+          <button onClick={onClose} className="p-1" aria-label={t.common.close}>
             <X className="w-5 h-5 text-muted" />
           </button>
         </div>
@@ -294,48 +313,93 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
           {/* Cart */}
           {cart.length > 0 && (
             <div className="space-y-2">
-              {cart.map((line, idx) => (
-                <div key={line.itemId} className="bg-surface rounded-lg border border-line px-3 py-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-ink">{line.itemName}</span>
-                    <button onClick={() => removeLine(idx)} className="text-bad">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="flex items-center bg-app rounded-lg">
-                      <button onClick={() => updateLine(idx, { qty: String(Math.max(1, Number(line.qty) - 1)) })} className="px-2 py-1.5">
-                        <Minus className="w-3.5 h-3.5 text-muted" />
-                      </button>
-                      <input
-                        type="number"
-                        value={line.qty}
-                        onChange={(e) => updateLine(idx, { qty: e.target.value })}
-                        className="w-14 bg-transparent text-center text-sm py-1.5 focus:outline-none"
-                      />
-                      <button onClick={() => updateLine(idx, { qty: String(Number(line.qty) + 1) })} className="px-2 py-1.5">
-                        <Plus className="w-3.5 h-3.5 text-muted" />
+              {cart.map((line, idx) => {
+                const baseQty = getBaseQty(line)
+                const stockQty = line.stockQty ?? stockMap.get(line.itemId) ?? null
+                const overStock = isOutbound && stockQty !== null && baseQty > stockQty
+                const unitLabel = line.unitMode === 'packs' ? line.packLabel : t.common.units[line.baseUnit as keyof typeof t.common.units] ?? line.baseUnit
+                const step = line.unitMode === 'packs' ? 1 : line.packSize
+                return (
+                  <div key={line.itemId} className="bg-surface rounded-lg border border-line px-3 py-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-ink">{line.itemName}</span>
+                      <button onClick={() => removeLine(idx)} className="text-bad p-1" aria-label={t.admin.apartments.delete}>
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    {opDef.needsCost && (
-                      <div className="flex-1">
+                    {stockQty !== null && (
+                      <p className="text-xs text-muted mb-2">
+                        {t.admin.move.inStock}: {n(formatQty(stockQty, { base_unit: line.baseUnit as WarehouseStockRow['base_unit'], pack_size: line.packSize, pack_label: line.packLabel }))}
+                      </p>
+                    )}
+                    {overStock && (
+                      <div className="flex items-center gap-1.5 text-xs text-bad mb-2 bg-bad-soft rounded-lg px-2.5 py-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        {t.admin.move.overStock}
+                      </div>
+                    )}
+                    {line.packSize > 1 && (
+                      <div className="flex gap-1 mb-2">
+                        <button
+                          onClick={() => updateLine(idx, { unitMode: 'packs' })}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${line.unitMode === 'packs' ? 'bg-accent border-accent text-white' : 'bg-surface border-line text-muted'}`}
+                        >
+                          {line.packLabel}
+                        </button>
+                        <button
+                          onClick={() => updateLine(idx, { unitMode: 'base' })}
+                          className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${line.unitMode === 'base' ? 'bg-accent border-accent text-white' : 'bg-surface border-line text-muted'}`}
+                        >
+                          {t.common.units[line.baseUnit as keyof typeof t.common.units] ?? line.baseUnit}
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2 items-center">
+                      <div className="flex items-center bg-app rounded-lg">
+                        <button
+                          onClick={() => updateLine(idx, { qty: String(Math.max(1, Number(line.qty) - 1)) })}
+                          className="px-2 py-1.5"
+                          aria-label="−"
+                        >
+                          <Minus className="w-3.5 h-3.5 text-muted" />
+                        </button>
+                        <input
+                          type="number"
+                          value={line.qty}
+                          onChange={(e) => updateLine(idx, { qty: e.target.value })}
+                          step={step}
+                          className="w-14 bg-transparent text-center text-sm py-1.5 focus:outline-none"
+                        />
+                        <button
+                          onClick={() => updateLine(idx, { qty: String(Number(line.qty) + 1) })}
+                          className="px-2 py-1.5"
+                          aria-label="+"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-muted" />
+                        </button>
+                      </div>
+                      <span className="text-xs text-muted">{unitLabel}</span>
+                      {line.packSize > 1 && line.unitMode === 'packs' && (
+                        <span className="text-xs text-muted ml-auto">= {n(String(baseQty))} {t.common.units[line.baseUnit as keyof typeof t.common.units] ?? line.baseUnit}</span>
+                      )}
+                      {opDef.needsCost && (
                         <input
                           type="number"
                           value={line.unitCost}
                           onChange={(e) => updateLine(idx, { unitCost: e.target.value })}
                           placeholder={t.admin.move.unitCost}
-                          className="w-full bg-app rounded-lg px-3 py-2 text-sm focus:outline-none"
+                          className="w-24 bg-app rounded-lg px-3 py-2 text-sm focus:outline-none"
                         />
-                        {line.packSize > 1 && line.unitCost && (
-                          <p className="text-xs text-muted mt-0.5">
-                            {t.admin.move.costPerPack}: {(Number(line.unitCost) * line.packSize).toFixed(2)}
-                          </p>
-                        )}
-                      </div>
+                      )}
+                    </div>
+                    {opDef.needsCost && line.packSize > 1 && line.unitCost && (
+                      <p className="text-xs text-muted mt-1">
+                        {t.admin.move.costPerPack}: {(Number(line.unitCost) * line.packSize).toFixed(2)}
+                      </p>
                     )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
